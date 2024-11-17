@@ -22,27 +22,17 @@ class Game:
         clock = pygame.time.Clock()
         clock.tick(FPS)
 
-        if self.__winner():
+        if self.__check_winner():
             self.__end_game()
 
         while self.__run_game:
             clock.tick(FPS)
 
             if self.__turn == WHITE:
-                value, new_board = minimax(
-                    self.__board, AI_ENGINE_DEPTH, WHITE, self
-                )
+                value, new_board = minimax(self.__board, AI_ENGINE_DEPTH, WHITE, self)
                 self.__ai_move(new_board)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.__end_game()
-
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-                    row, col = self.__get_row_col_from_mouse(pos)
-
-                    self.__select(row, col)
+            self.__handle_events()
 
             self.__update()
 
@@ -60,18 +50,27 @@ class Game:
         self.__valid_moves = {}
 
     def __select(self, row, col):
+        # User clicks on square after selecting a piece
         if self.__selected:
-            result = self.__move(row, col)
-            if not result:
+            is_valid_move = self.__move(row, col)
+            if not is_valid_move:
                 self.__selected = None
                 self.__select(row, col)
 
         piece = self.__board.get_piece(row, col)
+
+        if piece == 0:
+            self.__valid_moves = {}  # Clear valid moves
+            self.__selected = None    # Deselect any selected piece
+            return False
+
         if piece != 0 and piece.color == self.__turn:
             self.__selected = piece
             self.__valid_moves = self.__board.get_valid_moves(piece)
             return True
-
+        
+        self.__valid_moves = {}
+        self.__selected = None
         return False
 
     def __move(self, row, col):
@@ -109,7 +108,7 @@ class Game:
         else:
             self.__turn = RED
 
-    def __winner(self):
+    def __check_winner(self):
         return self.__board.winner()
 
     def __ai_move(self, board):
@@ -126,3 +125,14 @@ class Game:
     def __end_game(self):
         self.run_game = False
         pygame.quit()
+
+    def __handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.__end_game()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                row, col = self.__get_row_col_from_mouse(pos)
+
+                self.__select(row, col)
